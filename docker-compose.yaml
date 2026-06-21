@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # 1. The Gateway-Go Service Box
+  gateway-go:
+    build:
+      context: ./gateway-go
+      dockerfile: Dockerfile
+    container_name: gateway-go-service
+    ports:
+      - "8085:8085"
+    environment:
+      - DB_HOST=natakos-postgres
+      - DB_PORT=5432
+      - DB_USER=nafi_ceo
+      - DB_PASSWORD=surabaya_crypto_2026
+      - DB_NAME=natakos_db
+      - AMQP_SERVER_URL=amqp://guest:guest@natakos-rabbitmq:5672/
+    networks:
+      - natakos-net
+    depends_on:
+      - natakos-postgres
+      - natakos-rabbitmq
+    restart: always
+
+  # 2. The Brain-Python Service Box
+  brain-python:
+    build:
+      context: ./brain-python
+      dockerfile: Dockerfile
+    container_name: brain-python-service
+    environment:
+      - DB_HOST=natakos-postgres
+      - DB_PORT=5432
+      - DB_USER=nafi_ceo
+      - DB_PASSWORD=surabaya_crypto_2026
+      - DB_NAME=natakos_db
+      - REDIS_HOST=natakos-redis
+      - REDIS_PORT=6379
+      - AMQP_SERVER_URL=amqp://guest:guest@natakos-rabbitmq:5672/
+      - PYTHONUNBUFFERED=1
+      - AI_API_KEY=${AI_API_KEY}
+    networks:
+      - natakos-net
+    depends_on:
+      - natakos-postgres
+      - natakos-redis
+      - natakos-rabbitmq
+    restart: always
+    command: sh -c "python -m app.extract_pipeline && python -m app.consumer"
+
+  # 3. The PostgreSQL 16 Storage Vault
+  natakos-postgres:
+    image: pgvector/pgvector:0.6.0-pg16
+    container_name: natakos-postgres-db
+    environment:
+      - POSTGRES_USER=nafi_ceo
+      - POSTGRES_PASSWORD=surabaya_crypto_2026
+      - POSTGRES_DB=natakos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
+    networks:
+      - natakos-net
+    restart: always
+
+  # 4. The Redis 7 In-Memory Context Cache
+  natakos-redis:
+    image: redis:7-alpine
+    container_name: natakos-redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - natakos-net
+    restart: always
+
+  # 5. NEW SERVICE: The RabbitMQ Message Broker Highway
+  natakos-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: natakos-rabbitmq-broker
+    ports:
+      - "5672:5672"   # Internal AMQP communication line
+      - "15672:15672" # Web UI Management Console
+    networks:
+      - natakos-net
+    restart: always
+
+  # 6. NEW SERVICE: The Time-Triggered Cron Automation Worker
+  cron-automation:
+    build:
+      context: ./brain-python
+      dockerfile: Dockerfile
+    container_name: natakos-cron-automation
+    environment:
+      - AMQP_SERVER_URL=amqp://guest:guest@natakos-rabbitmq:5672/
+      - PYTHONUNBUFFERED=1
+    networks:
+      - natakos-net
+    depends_on:
+      - natakos-rabbitmq
+    restart: always
+    # OVERRIDE THE DEFAULT CMD: Instead of running the consumer, run our cron script!
+    command: ["python", "-m", "app.cron_worker"]
+
+networks:
+  natakos-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
