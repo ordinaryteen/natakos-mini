@@ -4,6 +4,9 @@ Waddup twin, welcome to the simulation of internal engine room of **0xNTK$**. Th
 
 It is held together by pure architectural intuition, a fallback ring stuff like that, and a small can of caramel machiato. Take it away, honey.
 
+## What is this
+Basically I am trying to make a chatbot that can know which room is available in that moment, and maybe if someone ask about a boarding house rule, that bot can answer it based on the document (yea classic RAG actually). Basically, i wanna make a chatbot that pretends as a business operator for landlords, a classic payment reminder would be a good example to think of. Someday it'll be able to do accounting or maybe reporting things. My main focus on this project is simply to understand how backend works, not the businses case itself (yet).
+
 ## How tf is this even running
 
 * **Gateway-Go:** The border control agent. It catches WhatsApp webhooks from tenant, kicks back an instant response (while thinking "damn this UI is ugly, might as well change it later"), and drops the event suitcase into the transport highway before anyone can notice.
